@@ -60,25 +60,28 @@ define rclone::config (
   Hash[String, Optional[String]] $options,
   Enum['present', 'absent'] $ensure = 'present',
   String $config_name = $title,
+  Boolean $auto_mode = false,
 ) {
 
   if ! defined(Class[rclone]) {
     fail('You must include the rclone base class before using any defined resources')
   }
 
-  $_operation = $ensure ? {
-    'present' => 'create',
-    'absent'  => 'delete',
-    default   => fail("Invalid ensure value '${ensure}'")
-  }
+  if $auto_mode {
+    $_operation = $ensure ? {
+      'present' => 'create',
+      'absent'  => 'delete',
+      default   => fail("Invalid ensure value '${ensure}'")
+    }
 
-  $_options = $options.filter |$key, $val| { $val != undef }.convert_to(Array).flatten()
+    $_options = $options.filter |$key, $val| { $val != undef }.convert_to(Array).flatten()
 
-  exec { "rclone ${_operation} remote ${config_name} for user ${os_user}":
-    command => shell_join(['rclone', 'config', $_operation, $config_name]
-      + if ($_operation == 'create') { [$type] + $_options } else { [] }),
-    user    => $os_user,
-    path    => '/usr/bin',
-    require => Class[rclone],
+    exec { "rclone ${_operation} remote ${config_name} for user ${os_user}":
+      command => shell_join(['rclone', 'config', $_operation, $config_name]
+        + if ($_operation == 'create') { [$type] + $_options } else { [] }),
+      user    => $os_user,
+      path    => '/usr/bin',
+      require => Class[rclone],
+    }
   }
 }
